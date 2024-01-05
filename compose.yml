@@ -1,0 +1,72 @@
+version: '3.8'
+services:
+#  jenkins-docker:
+#    container_name: jenkins-docker
+#    image: docker:dind
+#    command: --storage-driver overlay2
+#    privileged: true
+#    networks:
+#      - jenkins
+#    environment:
+#      - DOCKER_TLS_CERTDIR=/certs
+#    volumes:
+#      - jenkins-docker-certs:/certs/client
+#      - jenkins-data:/var/jenkins_home
+#    ports:
+#      - "2376:2376"
+
+  jenkins-blueocean:
+    container_name: jenkins-blueocean
+    build:
+      dockerfile: Dockerfile
+    restart: on-failure
+    networks:
+      - jenkins
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+
+  gogs:
+    image: gogs/gogs
+    container_name: gogs
+    ports:
+      - "10022:22"    # Maps SSH port
+      - "3000:3000"  # Maps HTTP port for web interface
+    networks:
+      - jenkins
+    volumes:
+      - ./tmp/gogs:/data  # Maps the persistent data volume
+
+
+  socat:
+    image: alpine/socat
+    command: tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins
+    ports:
+      - "127.0.0.1:2375:2375"
+    restart: always
+
+  java:
+    image: gradle
+    container_name: java
+    networks:
+      - jenkins
+    volumes:
+      - ./java-app:/home/gradle/java-app  # Maps the persistent data volume
+networks:
+  jenkins:
+    driver: bridge
+
+volumes:
+  jenkins-docker-certs:
+  jenkins-data:
