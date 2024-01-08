@@ -1,25 +1,10 @@
 version: '3.8'
 services:
-#  jenkins-docker:
-#    container_name: jenkins-docker
-#    image: docker:dind
-#    command: --storage-driver overlay2
-#    privileged: true
-#    networks:
-#      - jenkins
-#    environment:
-#      - DOCKER_TLS_CERTDIR=/certs
-#    volumes:
-#      - jenkins-docker-certs:/certs/client
-#      - jenkins-data:/var/jenkins_home
-#    ports:
-#      - "2376:2376"
-
   jenkins-blueocean:
     container_name: jenkins-blueocean
+    privileged: true
     build:
       dockerfile: Dockerfile
-    restart: on-failure
     networks:
       - jenkins
     environment:
@@ -54,7 +39,14 @@ services:
       - jenkins
     ports:
       - "127.0.0.1:2375:2375"
-    restart: always
+
+  java-gadle-agent:
+    image: java-gradle-agent
+    build:
+      context: docker/java-gradle-agent
+      dockerfile: Dockerfile
+    networks:
+      - jenkins
 
   java:
     image: gradle
@@ -62,7 +54,9 @@ services:
     networks:
       - jenkins
     volumes:
-      - ./java-app:/home/gradle/java-app  # Maps the persistent data volume
+      - ./../java-app:/home/gradle/java-app  # Maps the persistent data volume
+
+
 networks:
   jenkins:
     driver: bridge
